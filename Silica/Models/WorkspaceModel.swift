@@ -242,6 +242,7 @@ final class WorkspaceModel {
     /// Re-reads the tree and checks open files against the disk.
     func refresh() {
         root.reload()
+        FolderIcons.shared.reload()
         syncOpenFilesWithDisk()
         search.refresh()
         // Files may have come or gone: filter a fresh list.

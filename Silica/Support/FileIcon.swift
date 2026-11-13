@@ -1,6 +1,8 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
-/// SF Symbol + tint for a file, colored like Xcode's project navigator.
+/// SF Symbol + tint for a file, colored like Xcode's project navigator. Folders
+/// get the icon Finder shows for them.
 struct FileIcon: View {
     let url: URL
     var isDirectory = false
@@ -8,11 +10,17 @@ struct FileIcon: View {
     var width: CGFloat = 16
 
     var body: some View {
-        let (symbol, color) = Self.style(for: url, isDirectory: isDirectory, isExpanded: isExpanded)
-        Image(systemName: symbol)
-            .symbolVariant(isDirectory ? .fill : .none)
-            .foregroundStyle(color)
-            .frame(width: width)
+        if isDirectory {
+            Image(nsImage: FolderIcons.shared.icon(for: url))
+                .resizable()
+                .interpolation(.high)
+                .frame(width: width, height: width)
+        } else {
+            let (symbol, color) = Self.style(for: url, isDirectory: false, isExpanded: isExpanded)
+            Image(systemName: symbol)
+                .foregroundStyle(color)
+                .frame(width: width)
+        }
     }
 
     static func style(for url: URL, isDirectory: Bool, isExpanded: Bool) -> (String, Color) {
@@ -55,6 +63,36 @@ struct FileIcon: View {
         case "txt", "log": return ("doc.plaintext", C.neutral)
         default: return ("doc", C.neutral)
         }
+    }
+}
+
+/// Finder's icons for folders: custom icons, packages and the system's special
+/// folders look as they do there. Kept until files change on disk.
+@MainActor @Observable
+final class FolderIcons {
+    static let shared = FolderIcons()
+
+    /// Read by every folder icon, so they are all fetched again after `reload()`.
+    private var generation = 0
+    @ObservationIgnored private var icons: [URL: NSImage] = [:]
+
+    func icon(for url: URL) -> NSImage {
+        _ = generation
+        if let icon = icons[url] { return icon }
+        let path = url.path(percentEncoded: false)
+        // A folder still being named isn't on disk yet: the plain folder.
+        let icon = FileManager.default.fileExists(atPath: path)
+            ? NSWorkspace.shared.icon(forFile: path)
+            : NSWorkspace.shared.icon(for: .folder)
+        icons[url] = icon
+        return icon
+    }
+
+    /// Forgets every icon; a folder's icon may have been changed in Finder.
+    func reload() {
+        guard !icons.isEmpty else { return }
+        icons.removeAll()
+        generation += 1
     }
 }
 
