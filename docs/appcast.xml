@@ -3,6 +3,38 @@
     <channel>
         <title>Silica</title>
         <item>
+            <title>0.4.0</title>
+            <pubDate>Fri, 13 Nov 2026 21:32:18 +0800</pubDate>
+            <link>https://github.com/dqhieu/Silica</link>
+            <sparkle:fullReleaseNotesLink>https://github.com/dqhieu/Silica/releases</sparkle:fullReleaseNotesLink>
+            <sparkle:version>6</sparkle:version>
+            <sparkle:shortVersionString>0.4.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <description sparkle:format="markdown"><![CDATA[### What's new
+
+- **Preview HTML files.** **View › Show Preview** (**⇧⌘V**) and the title bar toggle now work for .html, .htm and .xhtml files as they do for Markdown. The page is shown as a browser would show it, with its styles, images and scripts, and with your unsaved changes. Web links open in your browser and links to project files open in a Silica tab.
+- **Preview CSV and TSV files as a table.** The same toggle shows a .csv or .tsv file as a table with a header row that stays at the top and numeric columns aligned right. Double-click a row to go to its line in the source. Very large files are cut off at 100,000 cells, with a note saying how many rows there are.
+- **PDFs open in the editor.** A PDF file now opens in its own tab instead of showing as a binary file. A password-protected PDF asks for its password.
+- **Video files play in the editor.** Videos open in a player, with the picture's size, length and file size beneath it. Each tab keeps its place in its video, and a video pauses when you switch away from its tab.
+- **Animated GIFs play in the image viewer.** A GIF, animated PNG or animated WebP now plays in its tab, where only its first frame was shown.
+- **Diff and patch files are highlighted.** .diff, .patch and .rej files, and diff code blocks in the Markdown preview, show added lines in green and removed lines in red in every theme.
+- **Drag files and folders out of the sidebar.** Drag a row from the file tree to another app as you would from Finder: Terminal inserts its path, and Finder or the Desktop gets a copy. The file is never moved.
+- **Drag the project folder from its name.** Hovering the project name at the top of the sidebar shows the folder's Finder icon. Drag it to Terminal to insert the project's path, or to Finder to copy the folder.
+- **Reveal a tab's file in the explorer.** Right-click a tab and choose **Reveal in Explorer** to open the folders above the file and select it in the file tree.
+- **Close a tab with a middle click.**
+- **Set the sidebar's font size.** **Settings › Fonts & Colors** has a new **Sidebar** group with a size from 9 to 20 pt, separate from the editor font. The file tree and the Find in Project results follow it.
+- **Folders show their Finder icons in the file tree.** Custom folder icons appear, and packages such as .xcodeproj look like what they are.
+- **Sidebar buttons highlight under the pointer.** The Collapse Folders, Search and sidebar toggle buttons now show a soft fill on hover, like toolbar buttons in system apps.
+- **Large Markdown previews no longer hold up the window.** The preview is now prepared in the background.
+
+If you already have Silica, it will offer this update on its own, or choose **Silica › Check for Updates…**.
+
+Found a bug or have an idea? Please [open an issue](https://github.com/dqhieu/Silica/issues).
+
+]]></description>
+            <enclosure url="https://github.com/dqhieu/Silica/releases/download/v0.4.0/Silica-0.4.0.dmg" length="7856899" type="application/octet-stream" sparkle:edSignature="qGCNdfIyD9Oz+YkrnvpBch/Kk57Lty4BkGPNwLN5Uvmq6bzP7zRQhmQszH2sT2L1GU8U7uw82b7//6OsaKEmDw=="/>
+        </item>
+        <item>
             <title>0.3.0</title>
             <pubDate>Thu, 12 Nov 2026 18:58:59 +0800</pubDate>
             <link>https://github.com/dqhieu/Silica</link>
