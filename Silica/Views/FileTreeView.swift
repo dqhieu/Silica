@@ -296,13 +296,21 @@ private struct FolderProxyIcon: NSViewRepresentable {
         override func mouseExited(with event: NSEvent) { updateWindowMovability() }
 
         override func viewWillMove(toWindow newWindow: NSWindow?) {
-            window?.isMovable = true
+            super.viewWillMove(toWindow: newWindow)
+            if holdsWindow { window?.isMovable = true }
+            holdsWindow = false
         }
+
+        /// Whether this view is what stopped the window being movable. The tab bar
+        /// sets the same flag, so the icon only ever undoes its own change.
+        private var holdsWindow = false
 
         private func updateWindowMovability() {
             guard let window else { return }
-            let isMovable = !bounds.contains(convert(window.mouseLocationOutsideOfEventStream, from: nil))
-            if window.isMovable != isMovable { window.isMovable = isMovable }
+            let isInside = bounds.contains(convert(window.mouseLocationOutsideOfEventStream, from: nil))
+            guard isInside != holdsWindow else { return }
+            holdsWindow = isInside
+            window.isMovable = !isInside
         }
 
         override func mouseDown(with event: NSEvent) {}
@@ -315,7 +323,7 @@ private struct FolderProxyIcon: NSViewRepresentable {
         }
 
         func draggingSession(_ session: NSDraggingSession, sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
-            [.copy, .link]
+            context == .outsideApplication ? [.copy, .link] : []
         }
 
         func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation) {
