@@ -57,11 +57,12 @@ struct FileTreeView: View {
 
     private var header: some View {
         HStack(spacing: 0) {
-            Text(workspace.sidebarMode == .search ? "Search" : workspace.name)
-                .lineLimit(1)
-                .truncationMode(.middle)
-                .font(.headline)
-                .help(workspace.rootURL.path(percentEncoded: false))
+            if workspace.sidebarMode == .search {
+                Text("Search")
+                    .font(.headline)
+            } else {
+                ProjectTitle(workspace: workspace)
+            }
 
             Spacer(minLength: 8)
 
@@ -254,6 +255,97 @@ struct FileTreeView: View {
         }
         add(workspace.root.children ?? [], depth: 0, in: workspace.root.url)
         return rows
+    }
+}
+
+private struct ProjectTitle: View {
+    let workspace: WorkspaceModel
+    @State private var isHovering = false
+    @State private var icon: NSImage?
+
+    var body: some View {
+        HStack(spacing: 4) {
+            if isHovering, let icon {
+                FolderProxyIcon(url: workspace.rootURL, icon: icon)
+                    .frame(width: 16, height: 16)
+                    .transition(.opacity)
+            }
+            Text(workspace.name)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .font(.headline)
+                .help(workspace.rootURL.path(percentEncoded: false))
+        }
+        .onHover { hovering in
+            if hovering, icon == nil {
+                let image = NSWorkspace.shared.icon(forFile: workspace.rootURL.path(percentEncoded: false))
+                image.size = NSSize(width: 16, height: 16)
+                icon = image
+            }
+            withAnimation(.easeInOut(duration: 0.15)) { isHovering = hovering }
+        }
+    }
+}
+
+private struct FolderProxyIcon: NSViewRepresentable {
+    let url: URL
+    let icon: NSImage
+
+    func makeNSView(context: Context) -> ProxyIconView { ProxyIconView() }
+
+    func updateNSView(_ view: ProxyIconView, context: Context) {
+        view.url = url
+        if view.image !== icon { view.image = icon }
+    }
+
+    final class ProxyIconView: NSImageView, NSDraggingSource {
+        var url: URL?
+
+        override func updateTrackingAreas() {
+            super.updateTrackingAreas()
+            if trackingAreas.isEmpty {
+                addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self))
+            }
+            updateWindowMovability()
+        }
+
+        override func mouseEntered(with event: NSEvent) { updateWindowMovability() }
+        override func mouseExited(with event: NSEvent) { updateWindowMovability() }
+
+        override func viewWillMove(toWindow newWindow: NSWindow?) {
+            super.viewWillMove(toWindow: newWindow)
+            if holdsWindow { window?.isMovable = true }
+            holdsWindow = false
+        }
+
+        /// Whether this view is what stopped the window being movable. The tab bar
+        /// sets the same flag, so the icon only ever undoes its own change.
+        private var holdsWindow = false
+
+        private func updateWindowMovability() {
+            guard let window else { return }
+            let isInside = bounds.contains(convert(window.mouseLocationOutsideOfEventStream, from: nil))
+            guard isInside != holdsWindow else { return }
+            holdsWindow = isInside
+            window.isMovable = !isInside
+        }
+
+        override func mouseDown(with event: NSEvent) {}
+
+        override func mouseDragged(with event: NSEvent) {
+            guard let url else { return }
+            let item = NSDraggingItem(pasteboardWriter: url as NSURL)
+            item.setDraggingFrame(bounds, contents: image)
+            beginDraggingSession(with: [item], event: event, source: self)
+        }
+
+        func draggingSession(_ session: NSDraggingSession, sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
+            context == .outsideApplication ? [.copy, .link] : []
+        }
+
+        func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation) {
+            updateWindowMovability()
+        }
     }
 }
 
