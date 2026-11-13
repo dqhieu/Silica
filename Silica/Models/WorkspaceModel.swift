@@ -241,6 +241,26 @@ final class WorkspaceModel {
         revealCount += 1
     }
 
+    /// Whether `url` is inside the project folder, where the tree can show it. A
+    /// tab can be outside it after Save As.
+    func contains(_ url: URL) -> Bool {
+        url.isFileURL && url.standardizedFileURL.pathComponents.dropLast()
+            .starts(with: rootURL.standardizedFileURL.pathComponents)
+    }
+
+    /// Reveal in Explorer, from a tab's menu: `reveal`, after bringing the tree
+    /// into view and clearing a filter that hides the file.
+    func revealInTree(_ url: URL) {
+        // The tree's selection is the active tab, and the tree isn't there to
+        // open what's selected in it while the sidebar is hidden.
+        activate(url)
+        showExplorer()
+        if isFilteringTree, treeFilterResult?.visiblePaths.contains(relativePath(of: url)) != true {
+            treeFilter = ""
+        }
+        reveal(url)
+    }
+
     /// Re-reads the tree and checks open files against the disk.
     func refresh() {
         root.reload()

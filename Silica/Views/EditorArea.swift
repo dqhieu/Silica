@@ -96,6 +96,7 @@ private struct EditorTabBar: View {
                             select: { workspace.activate(url) },
                             close: { withAnimation(.snappy) { workspace.closeTab(url) } },
                             closeOthers: { withAnimation(.snappy) { workspace.closeOtherTabs(than: url) } },
+                            revealInTree: workspace.contains(url) ? { workspace.revealInTree(url) } : nil,
                             drag: { handleDrag($0, of: url, proxy: proxy) }
                         )
                         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { tabWidths[url] = $0 }
@@ -463,6 +464,8 @@ private struct EditorTab: View {
     let select: () -> Void
     let close: () -> Void
     let closeOthers: () -> Void
+    /// Shows the file in the tree; `nil` for a file the tree doesn't have.
+    let revealInTree: (() -> Void)?
     /// Reports a drag along the tab bar, which moves the tab to another place in it.
     let drag: (TabDragEvent) -> Void
 
@@ -525,6 +528,9 @@ private struct EditorTab: View {
             Button("Close Others", action: closeOthers)
             if !url.isUntitled {
                 Divider()
+                if let revealInTree {
+                    Button("Reveal in Explorer", action: revealInTree)
+                }
                 Button("Show in Finder") { Finder.reveal(url) }
                 Button("Copy Path") { Finder.copyPath(url) }
             }
