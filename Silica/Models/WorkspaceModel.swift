@@ -89,6 +89,8 @@ final class WorkspaceModel {
 
     func close() {
         saveSession()
+        // A video left playing would still be heard with its window gone.
+        for buffer in buffers.values { buffer.pausePlayback() }
         if let terminationObserver {
             NotificationCenter.default.removeObserver(terminationObserver)
             self.terminationObserver = nil

@@ -1,3 +1,4 @@
+import AVKit
 import PDFKit
 import SwiftUI
 
@@ -556,6 +557,8 @@ private struct BufferView: View {
             ImagePreview(file: file)
         case .pdf(let file):
             PDFPreview(file: file, name: buffer.name)
+        case .video(let file):
+            VideoPreview(file: file, name: buffer.name)
         case .binary:
             ContentUnavailableView(
                 "Binary File",
@@ -797,6 +800,89 @@ private struct PDFViewHost: NSViewRepresentable {
         // So the arrow keys, Page Up and Page Down scroll it straight away.
         DispatchQueue.main.async { [pdfView] in
             pdfView.window?.makeFirstResponder(pdfView)
+        }
+    }
+}
+
+// MARK: - Video
+
+/// Plays a video file fitted to the editor card, with its size, length and file
+/// size beneath it as images have.
+private struct VideoPreview: View {
+    let file: EditorBuffer.VideoFile
+    let name: String
+
+    var body: some View {
+        switch file.state {
+        case .loading:
+            Color.clear
+        case .unplayable:
+            ContentUnavailableView(
+                "Can’t Play Video",
+                systemImage: "video.slash",
+                description: Text("“\(name)” is in a format Silica can’t play, or the file is damaged.")
+            )
+        case .ready:
+            VStack(spacing: 12) {
+                VideoPlayerHost(player: file.player)
+                    // The picture's own shape, so no black bars are drawn around it.
+                    .aspectRatio(file.pixelSize.map { $0.width / $0.height }, contentMode: .fit)
+                    .overlay(Rectangle().strokeBorder(.separator, lineWidth: 1))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                Text(details)
+                    .font(.callout)
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+            }
+            .padding(24)
+        }
+    }
+
+    private var details: String {
+        var parts: [String] = []
+        if let size = file.pixelSize {
+            parts.append("\(Int(size.width)) × \(Int(size.height)) px")
+        }
+        if let duration = file.duration {
+            parts.append(Duration.seconds(duration.rounded()).formatted(.time(pattern: duration >= 3600 ? .hourMinuteSecond : .minuteSecond)))
+        }
+        parts.append(file.byteCount.formatted(.byteCount(style: .file)))
+        return parts.joined(separator: "  ·  ")
+    }
+}
+
+/// AVKit's player view, playing whichever video tab is active.
+private struct VideoPlayerHost: NSViewRepresentable {
+    let player: AVPlayer
+
+    func makeNSView(context: Context) -> AVPlayerView {
+        let view = AVPlayerView()
+        view.controlsStyle = .floating
+        view.showsFullScreenToggleButton = true
+        view.player = player
+        focus(view)
+        return view
+    }
+
+    func updateNSView(_ view: AVPlayerView, context: Context) {
+        guard view.player !== player else { return }
+        // Another video tab took the card: the one left behind stops playing.
+        view.player?.pause()
+        view.player = player
+        focus(view)
+    }
+
+    /// A tab that isn't shown doesn't keep playing.
+    static func dismantleNSView(_ view: AVPlayerView, coordinator: ()) {
+        view.player?.pause()
+        view.player = nil
+    }
+
+    private func focus(_ view: AVPlayerView) {
+        // So Space plays and pauses, and the arrow keys step, straight away.
+        DispatchQueue.main.async {
+            view.window?.makeFirstResponder(view)
         }
     }
 }

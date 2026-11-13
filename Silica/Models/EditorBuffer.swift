@@ -1,3 +1,4 @@
+import AVFoundation
 import AppKit
 import CryptoKit
 import Foundation
@@ -14,6 +15,7 @@ final class EditorBuffer: Identifiable {
         case text(TextController)
         case image(ImageFile)
         case pdf(PDFFile)
+        case video(VideoFile)
         case binary
         case tooLarge(Int64)
         case unreadable(String)
@@ -107,6 +109,55 @@ final class EditorBuffer: Identifiable {
         }
     }
 
+    /// A video played in the editor card. The tab owns the player, so it keeps its
+    /// place in the video while other tabs are shown.
+    @Observable
+    final class VideoFile {
+        enum State {
+            case loading
+            case ready
+            /// A format AVFoundation has no decoder for (Matroska, WebM, …), or a damaged file.
+            case unplayable
+        }
+
+        @ObservationIgnored let player = AVPlayer()
+        let byteCount: Int64
+        private(set) var state = State.loading
+        /// As shown, after the track's rotation; `nil` when there's no picture.
+        private(set) var pixelSize: CGSize?
+        private(set) var duration: TimeInterval?
+
+        init(url: URL, byteCount: Int64) {
+            self.byteCount = byteCount
+            let asset = AVURLAsset(url: url)
+            Task { [weak self] in
+                // Reading a movie's header can take a while on a slow disk; the card
+                // stays empty until it's known whether there is anything to play.
+                let isPlayable = (try? await asset.load(.isPlayable)) ?? false
+                let duration = try? await asset.load(.duration)
+                let pixelSize = await Self.pixelSize(of: asset)
+                guard let self else { return }
+                guard isPlayable else {
+                    state = .unplayable
+                    return
+                }
+                if let duration, duration.isNumeric { self.duration = duration.seconds }
+                self.pixelSize = pixelSize
+                player.replaceCurrentItem(with: AVPlayerItem(asset: asset))
+                state = .ready
+            }
+        }
+
+        private static func pixelSize(of asset: AVURLAsset) async -> CGSize? {
+            guard let track = try? await asset.loadTracks(withMediaType: .video).first,
+                  let (size, transform) = try? await track.load(.naturalSize, .preferredTransform) else { return nil }
+            // A phone's portrait video is stored on its side and turned by the transform.
+            let shown = CGRect(origin: .zero, size: size).applying(transform)
+            guard shown.width >= 1, shown.height >= 1 else { return nil }
+            return CGSize(width: shown.width.rounded(), height: shown.height.rounded())
+        }
+    }
+
     private static let maxFileSize: Int64 = 20 * 1024 * 1024
     /// For images and PDFs, which are shown rather than loaded into the editor.
     private static let maxPreviewSize: Int64 = 200 * 1024 * 1024
@@ -138,6 +189,14 @@ final class EditorBuffer: Identifiable {
         // changed file is opened again.
         let attributes = Self.attributes(of: url)
         let size = Int64(attributes?.size ?? 0)
+
+        // Played from disk as it goes, so a video has no size limit.
+        if Self.isVideo(url) {
+            encoding = .utf8
+            diskSnapshot = attributes.map { DiskSnapshot(attributes: $0, digest: nil) }
+            content = .video(VideoFile(url: url, byteCount: size))
+            return
+        }
 
         let isImage = Self.isImage(url)
         if isImage || Self.isPDF(url) {
@@ -183,6 +242,11 @@ final class EditorBuffer: Identifiable {
         content = .text(controller)
         controller.buffer = self
         controller.updateStatus()
+    }
+
+    /// Stops a video that is playing; its place is kept.
+    func pausePlayback() {
+        if case .video(let file) = content { file.player.pause() }
     }
 
     // MARK: Status
@@ -438,6 +502,19 @@ final class EditorBuffer: Identifiable {
 
     private static func loadPDF(_ url: URL, byteCount: Int64) -> PDFFile? {
         PDFDocument(url: url).map { PDFFile(document: $0, byteCount: byteCount) }
+    }
+
+    private static func isVideo(_ url: URL) -> Bool {
+        guard let type = UTType(filenameExtension: url.pathExtension), type.conforms(to: .movie) else { return false }
+        // ".ts" and ".mts" name MPEG transport streams to the system, but are far more
+        // often TypeScript: those count as video only if they don't read as text.
+        if type.conforms(to: .mpeg2TransportStream) || url.pathExtension.lowercased() == "mts" {
+            guard let handle = try? FileHandle(forReadingFrom: url) else { return false }
+            defer { try? handle.close() }
+            guard let head = try? handle.read(upToCount: 8192) else { return false }
+            return looksBinary(head)
+        }
+        return true
     }
 
     private static func looksBinary(_ data: Data) -> Bool {

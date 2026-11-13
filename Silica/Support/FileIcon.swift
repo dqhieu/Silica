@@ -57,6 +57,7 @@ struct FileIcon: View {
         case "yml", "yaml", "toml", "ini", "plist", "xcconfig", "env": return ("gearshape", C.steel)
         case "png", "jpg", "jpeg", "gif", "heic", "webp", "ico", "icns": return ("photo", C.mint)
         case "pdf": return ("doc.richtext", C.red)
+        case "mp4", "mov", "m4v", "avi", "mkv", "webm", "mpg", "mpeg", "3gp": return ("film", C.purple)
         case "zip", "gz", "tar", "rar", "7z": return ("archivebox", C.brown)
         case "diff", "patch", "rej": return ("plusminus", C.green)
         case "lock", "resolved": return ("lock", C.neutral)
