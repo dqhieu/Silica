@@ -659,13 +659,13 @@ private struct PreviewModeToggle: View {
 
 /// Shows an image file fitted to the editor card, never enlarged past one image
 /// pixel per point (VS Code's and Preview's 100%), over a checkerboard so
-/// transparent areas are visible.
+/// transparent areas are visible. A GIF or other animated image plays.
 private struct ImagePreview: View {
     let file: EditorBuffer.ImageFile
 
     var body: some View {
         VStack(spacing: 12) {
-            Image(nsImage: file.image)
+            picture
                 .resizable()
                 .interpolation(.high)
                 .scaledToFit()
@@ -680,11 +680,29 @@ private struct ImagePreview: View {
                 .foregroundStyle(.secondary)
         }
         .padding(24)
+        // An animation plays only while its tab is the one shown.
+        .onAppear { file.animation?.start() }
+        .onDisappear { file.animation?.stop() }
+        // Appears anew for each animated image, so going from one such tab to
+        // another stops the first and starts the second.
+        .id(file.animation.map(ObjectIdentifier.init))
+    }
+
+    /// The animation's current frame, or the still image.
+    private var picture: Image {
+        if let frame = file.animation?.frame {
+            Image(decorative: frame, scale: 1)
+        } else {
+            Image(nsImage: file.image)
+        }
     }
 
     private var details: String {
         let size = "\(Int(file.pixelSize.width)) × \(Int(file.pixelSize.height)) px"
-        return [size, file.format, file.byteCount.formatted(.byteCount(style: .file))].joined(separator: "  ·  ")
+        var parts = [size, file.format]
+        if let animation = file.animation { parts.append("\(animation.frameCount) frames") }
+        parts.append(file.byteCount.formatted(.byteCount(style: .file)))
+        return parts.joined(separator: "  ·  ")
     }
 }
 

@@ -70,6 +70,47 @@ final class EditorBuffer: Identifiable {
         let byteCount: Int64
         /// e.g. "PNG", "JPEG", "WebP".
         let format: String
+        /// For a GIF or other image with several frames to play; `image` is its first.
+        let animation: ImageAnimation?
+    }
+
+    /// Plays an animated image's frames while its tab is shown. ImageIO decodes them
+    /// as they come up, so a long GIF isn't held in memory whole.
+    @Observable
+    final class ImageAnimation {
+        let frameCount: Int
+        /// The frame to show now; `nil` until the first has been decoded.
+        private(set) var frame: CGImage?
+        @ObservationIgnored private let url: URL
+        /// Stands for one run of the animation: ImageIO's only way to end a run is
+        /// from inside its frame callback, which stops once this has changed.
+        @ObservationIgnored private var run: Run?
+
+        private final class Run {}
+
+        init(url: URL, frameCount: Int) {
+            self.url = url
+            self.frameCount = frameCount
+        }
+
+        /// Plays from the first frame, with the file's own timing and loop count.
+        func start() {
+            guard run == nil else { return }
+            let run = Run()
+            self.run = run
+            // Calls back on the main queue for each frame.
+            CGAnimateImageAtURLWithBlock(url as CFURL, nil) { [weak self] _, frame, stop in
+                guard let self, self.run === run else {
+                    stop.pointee = true
+                    return
+                }
+                self.frame = frame
+            }
+        }
+
+        func stop() {
+            run = nil
+        }
     }
 
     /// A PDF shown read-only in the editor card. The tab owns the view, so it keeps
@@ -244,9 +285,13 @@ final class EditorBuffer: Identifiable {
         controller.updateStatus()
     }
 
-    /// Stops a video that is playing; its place is kept.
+    /// Stops a video or animated image that is playing; a video keeps its place.
     func pausePlayback() {
-        if case .video(let file) = content { file.player.pause() }
+        switch content {
+        case .video(let file): file.player.pause()
+        case .image(let file): file.animation?.stop()
+        default: break
+        }
     }
 
     // MARK: Status
@@ -482,6 +527,7 @@ final class EditorBuffer: Identifiable {
         guard let image = NSImage(contentsOf: url), image.isValid else { return nil }
         var pixelSize = CGSize(width: image.size.width, height: image.size.height)
         var format = url.pathExtension.uppercased()
+        var animation: ImageAnimation?
         if let source = CGImageSourceCreateWithURL(url as CFURL, nil) {
             if let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
                let width = properties[kCGImagePropertyPixelWidth] as? Int,
@@ -492,9 +538,19 @@ final class EditorBuffer: Identifiable {
                let name = UTType(typeID)?.preferredFilenameExtension {
                 format = name == "jpeg" ? "JPEG" : name == "webp" ? "WebP" : name.uppercased()
             }
+            // Only in the formats that animate: an icon's or TIFF's several images are
+            // sizes and pages, not frames.
+            let frameCount = CGImageSourceGetCount(source)
+            if frameCount > 1, let typeID = CGImageSourceGetType(source) as String?,
+               let type = UTType(typeID), animatedTypes.contains(where: type.conforms(to:)) {
+                animation = ImageAnimation(url: url, frameCount: frameCount)
+            }
         }
-        return ImageFile(image: image, pixelSize: pixelSize, byteCount: byteCount, format: format)
+        return ImageFile(image: image, pixelSize: pixelSize, byteCount: byteCount, format: format, animation: animation)
     }
+
+    /// GIF, animated PNG, animated WebP and HEIC image sequences.
+    private static let animatedTypes: [UTType] = [.gif, .png, .webP] + [UTType("public.heics")].compactMap { $0 }
 
     private static func isPDF(_ url: URL) -> Bool {
         UTType(filenameExtension: url.pathExtension)?.conforms(to: .pdf) == true
