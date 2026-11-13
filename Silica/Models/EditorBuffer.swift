@@ -43,7 +43,7 @@ final class EditorBuffer: Identifiable {
     var cursor = CursorStatus()
     var indentation = EditorTextView.Indentation(usesTabs: false, width: 4)
 
-    /// Markdown and CSV files can switch between their source and a rendered preview;
+    /// Markdown, CSV and HTML files can switch between their source and a rendered preview;
     /// `nil` for every other kind of file.
     private(set) var previewFormat: PreviewFormat?
     private(set) var isShowingPreview = false
@@ -51,6 +51,8 @@ final class EditorBuffer: Identifiable {
     @ObservationIgnored private(set) var preview: DocumentPreview?
     /// Opens a project file a preview link points to.
     @ObservationIgnored var openFile: ((URL) -> Void)?
+    /// The project folder, which an HTML preview may load files from.
+    @ObservationIgnored var projectURL: URL?
 
     var id: URL { url }
     var name: String { url.lastPathComponent }
@@ -254,6 +256,10 @@ final class EditorBuffer: Identifiable {
             self.preview = preview
             preview.show(controller.textView.string, line: controller.topVisibleLine())
             isShowingPreview = true
+        } else if format == .html {
+            // A page has no source lines to match, so the editor stays where it was.
+            isShowingPreview = false
+            preview?.unloadPage()
         } else if let editLine {
             isShowingPreview = false
             DispatchQueue.main.async { controller.scroll(toLine: editLine, placingCursor: true) }
@@ -266,7 +272,9 @@ final class EditorBuffer: Identifiable {
     }
 
     private func makePreview(for controller: TextController, format: PreviewFormat) -> DocumentPreview {
-        let preview = DocumentPreview(fileURL: url, format: format)
+        // The project folder, so a page can use files outside its own folder in the project.
+        let readAccessURL = projectURL.flatMap { url.standardizedFileURL.path.hasPrefix($0.standardizedFileURL.path + "/") ? $0 : nil }
+        let preview = DocumentPreview(fileURL: url, format: format, readAccessURL: readAccessURL)
         preview.onOpenFile = { [weak self] url in self?.openFile?(url) }
         preview.onEditLine = { [weak self] line in self?.setShowingPreview(false, editLine: line) }
         preview.onType = { [weak self] characters in

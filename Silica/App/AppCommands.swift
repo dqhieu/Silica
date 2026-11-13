@@ -12,7 +12,7 @@ struct AppCommands: Commands {
     private var settings: EditorSettings { .shared }
     private var opener: ProjectOpener { ProjectOpener(openWindow: openWindow) }
 
-    /// "Show Markdown" or "Show CSV" while the preview is up, to go back to the source.
+    /// "Show Markdown", "Show CSV" or "Show HTML" while the preview is up, to go back to the source.
     private var previewToggleTitle: String {
         guard let buffer = workspace?.activeBuffer, buffer.isShowingPreview,
               let format = buffer.previewFormat else { return "Show Preview" }

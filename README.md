@@ -1,8 +1,8 @@
 # Silica
 
 A lightweight code editor for macOS, made of glass. Open a folder, find files fast,
-and edit with syntax highlighting, a minimap and a Markdown preview, all in a native
-SwiftUI and AppKit app.
+and edit with syntax highlighting, a minimap and a Markdown and HTML preview, all
+in a native SwiftUI and AppKit app.
 
 ![Silica editing a Swift project, with the file tree on the left and the editor on a glass card](.github/assets/screenshot.jpg)
 
@@ -28,6 +28,8 @@ Silica needs macOS 26 or later.
 - **Markdown preview**, with highlighted code blocks.
 - **CSV preview.** See `.csv` and `.tsv` files as a table, and double-click a row to
   edit it.
+- **HTML preview.** `.html` files render as in a browser, with their styles, images
+  and scripts.
 - **Editing tools.** Tabs, line numbers, indent guides, a minimap, word wrap, go to
   line, toggle comment, and moving or duplicating lines.
 - **Picks up where you left off.** Projects reopen their tabs, and recent projects
@@ -43,7 +45,7 @@ Silica needs macOS 26 or later.
 | ⇧⌘F | Find in Project |
 | ⌥⌘J | Filter files in the tree |
 | ⌘L | Go to Line |
-| ⇧⌘V | Toggle Markdown or CSV preview |
+| ⇧⌘V | Toggle Markdown, CSV or HTML preview |
 | ⌃⌘S | Show or hide the sidebar |
 | ⌘/ | Toggle comment |
 | ⌥↑ / ⌥↓ | Move lines up or down |

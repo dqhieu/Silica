@@ -617,7 +617,7 @@ private struct StatusBar: View {
 
 // MARK: - Preview
 
-/// Source / Preview switch for Markdown and CSV tabs, in the quiet icon style of the
+/// Source / Preview switch for Markdown, CSV and HTML tabs, in the quiet icon style of the
 /// other title bar buttons; the current mode is drawn in the primary color on a soft fill.
 private struct PreviewModeToggle: View {
     let buffer: EditorBuffer

@@ -37,7 +37,7 @@ You need Xcode 27 or later. Silica runs on macOS 26 and later.
 |---|---|
 | `Silica/App` | The app entry point, the app delegate and the menu commands |
 | `Silica/Views` | SwiftUI views: the welcome window, the workspace, the file tree, Settings |
-| `Silica/Editor` | The AppKit text view, line numbers, minimap, syntax highlighting and the Markdown and CSV previews |
+| `Silica/Editor` | The AppKit text view, line numbers, minimap, syntax highlighting and the Markdown, CSV and HTML previews |
 | `Silica/Models` | Workspace state, open buffers, settings, recent projects, search |
 | `Silica/Support` | Glue for AppKit, Finder, file watching and updates |
 | `Config/Info.plist` | Keys merged into the generated Info.plist |
