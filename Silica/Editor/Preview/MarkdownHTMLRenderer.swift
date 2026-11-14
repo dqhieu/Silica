@@ -230,7 +230,7 @@ nonisolated struct MarkdownHTMLRenderer: MarkupWalker {
         guard let language else { return escape(code) }
         let text = code as NSString
         var kinds = [TokenKind?](repeating: nil, count: text.length)
-        for token in language.grammar.tokenize(text) where NSMaxRange(token.range) <= text.length {
+        for token in language.tokenizer.tokenize(text) where NSMaxRange(token.range) <= text.length {
             for index in token.range.location..<NSMaxRange(token.range) { kinds[index] = token.kind }
         }
         var html = ""

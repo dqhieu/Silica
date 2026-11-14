@@ -265,7 +265,7 @@ private struct FontsAndColorsSettingsPane: View {
         let text = sample
         var result = AttributedString(text)
         let theme = settings.syntaxTheme
-        for token in SyntaxLanguage.swift.grammar.tokenize(text as NSString) {
+        for token in SyntaxLanguage.swift.tokenizer.tokenize(text as NSString) {
             guard let range = Range(token.range, in: result) else { continue }
             result[range].foregroundColor = Color(nsColor: theme.color(for: token.kind))
         }
