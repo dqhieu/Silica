@@ -47,7 +47,7 @@ nonisolated struct SyntaxPattern: Sendable {
 ///    override everything from phase 1.
 ///
 /// Span patterns must only use non-capturing groups `(?:…)`.
-nonisolated struct SyntaxGrammar: @unchecked Sendable {
+nonisolated struct SyntaxGrammar: SyntaxTokenizer, @unchecked Sendable {
     private struct Rule {
         let kind: TokenKind
         let regex: NSRegularExpression

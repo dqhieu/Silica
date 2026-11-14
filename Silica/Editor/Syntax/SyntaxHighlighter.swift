@@ -1,6 +1,6 @@
 import AppKit
 
-/// Colors an NSTextView's text using a `SyntaxGrammar`.
+/// Colors an NSTextView's text using a `SyntaxTokenizer`.
 ///
 /// Only the foreground color attribute is touched, directly on the text storage,
 /// so highlighting never marks the document dirty or adds undo steps. After an edit,
@@ -8,7 +8,7 @@ import AppKit
 /// meanwhile newly typed text inherits the color of the text around it.
 final class SyntaxHighlighter {
     private weak var textView: NSTextView?
-    private let grammar: SyntaxGrammar
+    private let tokenizer: any SyntaxTokenizer
     private var pending: Task<Void, Never>?
     private var generation = 0
 
@@ -20,7 +20,7 @@ final class SyntaxHighlighter {
 
     init(textView: NSTextView, language: SyntaxLanguage) {
         self.textView = textView
-        self.grammar = language.grammar
+        self.tokenizer = language.tokenizer
     }
 
     deinit {
@@ -32,7 +32,7 @@ final class SyntaxHighlighter {
         guard let storage = textView?.textStorage, storage.length <= Self.maxLength else { return }
         if storage.length <= Self.synchronousLength {
             generation += 1
-            apply(grammar.tokenize(snapshot(of: storage)))
+            apply(tokenizer.tokenize(snapshot(of: storage)))
         } else {
             schedule(after: .zero)
         }
@@ -45,7 +45,7 @@ final class SyntaxHighlighter {
     private func schedule(after delay: Duration) {
         generation += 1
         let expected = generation
-        let grammar = grammar
+        let tokenizer = tokenizer
         pending?.cancel()
         pending = Task { [weak self] in
             if delay > .zero {
@@ -56,7 +56,7 @@ final class SyntaxHighlighter {
 
             let text = self.snapshot(of: storage)
             let tokens = await Task.detached(priority: .userInitiated) {
-                grammar.tokenize(text)
+                tokenizer.tokenize(text)
             }.value
 
             guard !Task.isCancelled, expected == self.generation else { return }

@@ -130,7 +130,7 @@ nonisolated enum SyntaxLanguage: String, Sendable, CaseIterable {
         self == .python || self == .yaml
     }
 
-    var grammar: SyntaxGrammar {
+    var tokenizer: any SyntaxTokenizer {
         switch self {
         case .swift: Grammars.swift
         case .javascript, .typescript: Grammars.javaScript
