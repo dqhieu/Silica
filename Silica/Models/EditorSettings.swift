@@ -4,7 +4,7 @@ import Observation
 extension Notification.Name {
     static let editorFontSizeDidChange = Notification.Name("EditorFontSizeDidChange")
     static let editorWrapDidChange = Notification.Name("EditorWrapDidChange")
-    /// Font, tab width, line numbers, indent guides or the minimap changed.
+    /// Font, tab width, line numbers, indent guides, glass amount, or the minimap changed.
     static let editorSettingsDidChange = Notification.Name("EditorSettingsDidChange")
     static let syntaxThemeDidChange = Notification.Name("SyntaxThemeDidChange")
 }
@@ -21,7 +21,8 @@ final class EditorSettings {
     static let defaultSidebarFontSize: CGFloat = 11
     static let sidebarFontSizeRange: ClosedRange<CGFloat> = 9...20
     static let tabWidths = [2, 4, 8]
-
+    static let defaultEditorGlassAmount: CGFloat = 0.5
+    
     private enum Key {
         static let fontSize = "editorFontSize"
         static let fontFamily = "editorFontFamily"
@@ -32,6 +33,7 @@ final class EditorSettings {
         static let showsLineNumbers = "editorShowsLineNumbers"
         static let showsIndentGuides = "editorShowsIndentGuides"
         static let showsMinimap = "editorShowsMinimap"
+        static let editorGlassAmount = "editorGlassAmount"
         static let syntaxTheme = "syntaxTheme"
         static let appearance = "appearance"
         static let windowBackground = "windowBackground"
@@ -115,6 +117,22 @@ final class EditorSettings {
             guard showsMinimap != oldValue else { return }
             store(showsMinimap, Key.showsMinimap, isDefault: !showsMinimap)
             NotificationCenter.default.post(name: .editorSettingsDidChange, object: self)
+        }
+    }
+    
+    /// The editor's glass effect amount.
+    var editorGlassAmount: CGFloat {
+        didSet {
+            guard editorGlassAmount != oldValue else { return }
+            store(
+                Double(editorGlassAmount),
+                Key.editorGlassAmount,
+                isDefault: editorGlassAmount == Self.defaultEditorGlassAmount
+            )
+            NotificationCenter.default.post(
+                name: .editorSettingsDidChange,
+                object: self
+            )
         }
     }
 
@@ -215,6 +233,8 @@ final class EditorSettings {
         usesGlassEffect = defaults.object(forKey: Key.usesGlassEffect) as? Bool ?? true
         restoresTabs = defaults.object(forKey: Key.restoresTabs) as? Bool ?? true
         pinsParentFolders = defaults.object(forKey: Key.pinsParentFolders) as? Bool ?? true
+        let storedGlassAmount = defaults.object(forKey: Key.editorGlassAmount) as? Double ?? Self.defaultEditorGlassAmount
+        editorGlassAmount = min(1, max(0, storedGlassAmount))
     }
 
     private func store(_ value: Any?, _ key: String, isDefault: Bool) {

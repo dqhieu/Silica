@@ -631,45 +631,48 @@ private struct BufferView: View {
     let workspace: WorkspaceModel
 
     var body: some View {
-        switch buffer.content {
-        case .text(let controller):
-            if buffer.isShowingPreview, let preview = buffer.preview {
-                PreviewHost(preview: preview)
-            } else {
-                // The status bar floats over the text's bottom corner rather than
-                // taking a strip of the card, left of the minimap when it's shown.
-                TextViewHost(controller: controller)
-                    .overlay(alignment: .bottomTrailing) {
-                        StatusBar(buffer: buffer, workspace: workspace)
-                            .padding(4)
-                            .padding(.trailing, EditorSettings.shared.showsMinimap ? MinimapView.width : 0)
-                    }
+        Group {
+            switch buffer.content {
+            case .text(let controller):
+                if buffer.isShowingPreview, let preview = buffer.preview {
+                    PreviewHost(preview: preview)
+                } else {
+                    // The status bar floats over the text's bottom corner rather than
+                    // taking a strip of the card, left of the minimap when it's shown.
+                    TextViewHost(controller: controller)
+                        .overlay(alignment: .bottomTrailing) {
+                            StatusBar(buffer: buffer, workspace: workspace)
+                                .padding(4)
+                                .padding(.trailing, EditorSettings.shared.showsMinimap ? MinimapView.width : 0)
+                        }
+                }
+            case .image(let file):
+                ImagePreview(file: file)
+            case .pdf(let file):
+                PDFPreview(file: file, name: buffer.name)
+            case .video(let file):
+                VideoPreview(file: file, name: buffer.name)
+            case .binary:
+                ContentUnavailableView(
+                    "Binary File",
+                    systemImage: "doc.questionmark",
+                    description: Text("“\(buffer.name)” isn’t a text file, so it can’t be shown in the editor.")
+                )
+            case .tooLarge(let size):
+                ContentUnavailableView(
+                    "File Too Large",
+                    systemImage: "externaldrive.badge.exclamationmark",
+                    description: Text("“\(buffer.name)” is \(size.formatted(.byteCount(style: .file))), which is too large to open here.")
+                )
+            case .unreadable(let message):
+                ContentUnavailableView(
+                    "Can’t Read File",
+                    systemImage: "exclamationmark.triangle",
+                    description: Text(message)
+                )
             }
-        case .image(let file):
-            ImagePreview(file: file)
-        case .pdf(let file):
-            PDFPreview(file: file, name: buffer.name)
-        case .video(let file):
-            VideoPreview(file: file, name: buffer.name)
-        case .binary:
-            ContentUnavailableView(
-                "Binary File",
-                systemImage: "doc.questionmark",
-                description: Text("“\(buffer.name)” isn’t a text file, so it can’t be shown in the editor.")
-            )
-        case .tooLarge(let size):
-            ContentUnavailableView(
-                "File Too Large",
-                systemImage: "externaldrive.badge.exclamationmark",
-                description: Text("“\(buffer.name)” is \(size.formatted(.byteCount(style: .file))), which is too large to open here.")
-            )
-        case .unreadable(let message):
-            ContentUnavailableView(
-                "Can’t Read File",
-                systemImage: "exclamationmark.triangle",
-                description: Text(message)
-            )
         }
+        .background(GlassDarkeningView())
     }
 }
 
@@ -1025,6 +1028,7 @@ private struct EmptyEditorView: View {
             .font(.callout)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(GlassDarkeningView())
     }
 
     private func shortcut(_ title: String, keys: String) -> some View {
@@ -1037,6 +1041,31 @@ private struct EmptyEditorView: View {
                 .padding(.horizontal, 8)
                 .padding(.vertical, 2)
                 .glassSurface(in: .capsule)
+        }
+    }
+}
+
+// MARK: - Glass darkening view
+
+private struct GlassDarkeningView: View {
+    @State private var settings = EditorSettings.shared
+    @Environment(\.colorScheme) private var appearance
+    
+    private var color: Color {
+        switch appearance {
+        case .light: .white
+        case .dark: .black
+        @unknown default: .clear
+        }
+    }
+    
+    private var opacity: CGFloat {
+        1 - settings.editorGlassAmount
+    }
+    
+    var body: some View {
+        if settings.usesGlassEffect {
+            color.opacity(opacity)
         }
     }
 }
