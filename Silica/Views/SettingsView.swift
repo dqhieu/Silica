@@ -241,6 +241,19 @@ private struct EditorSettingsPane: View {
                 Toggle("Show indent guides", isOn: $settings.showsIndentGuides)
                 Toggle("Show minimap", isOn: $settings.showsMinimap)
                 Toggle("Wrap long lines", isOn: $settings.wrapsLines)
+                if #available(macOS 26.0, *), settings.usesGlassEffect {
+                    HStack {
+                        Slider(value: $settings.editorGlassAmount, in: 0...1) {
+                            Text("Glass amount")
+                        }
+                        Text(
+                            settings.editorGlassAmount,
+                            format: .percent.precision(.fractionLength(0))
+                        )
+                        .foregroundStyle(.secondary)
+                        .frame(width: 36)
+                    }
+                }
             }
 
             Section {
