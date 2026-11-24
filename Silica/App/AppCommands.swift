@@ -197,10 +197,9 @@ struct AppCommands: Commands {
 
             Divider()
 
-            // The file tabs, not the window tabs of the Window menu's Show Next Tab, which
-            // has ⌃Tab as well: this menu comes first, so the file tabs get the key.
-            // ⇧⌘] and ⇧⌘[ do the same unless a keybind uses them; see
-            // KeyWorkspace.installKeyboardShortcuts().
+            // The file tabs: Silica's windows don't have macOS window tabs (see
+            // AppDelegate), so ⌃Tab is free for them. ⇧⌘] and ⇧⌘[ do the same unless
+            // a keybind uses them; see KeyWorkspace.installKeyboardShortcuts().
             // From a terminal with others beside it, they step through the terminals.
             let hasOtherTabs = workspace?.canSelectOtherTab == true
 

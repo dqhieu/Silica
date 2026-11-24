@@ -257,15 +257,13 @@ final class KeybindSettingsTests {
         }
     }
 
-    @Test func windowTabKeysOnlyForTabCommands() throws {
+    @Test func controlTabIsFreeForAnyCommand() throws {
+        // Without window tabs, nothing keeps ⌃Tab back for the Window menu.
         let settings = settings()
         try settings.setActivePreset(id: "vscode") // ⌃Tab is free there.
         let controlTab = Keybind(key: .tab, modifiers: .control)!
-        #expect(throws: KeybindSettings.Error.commandConflict(controlTab, "Next Window Tab")) {
-            try settings.setKeybind(controlTab, for: .quickOpen)
-        }
-        try settings.setKeybind(controlTab, for: .selectNextTab)
-        #expect(settings.keybind(for: .selectNextTab) == controlTab)
+        try settings.setKeybind(controlTab, for: .quickOpen)
+        #expect(settings.keybind(for: .quickOpen) == controlTab)
     }
 
     @Test(.enabled("needs a layout with U.S. key positions") { await hasUSKeys })

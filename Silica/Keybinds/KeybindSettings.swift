@@ -266,20 +266,8 @@ final class KeybindSettings {
         if let conflict = commandTitle(boundTo: keybind, excluding: command, same: same) {
             return .commandConflict(keybind, conflict)
         }
-        if let windowTabs = Self.windowTabKeys.first(where: { same($0.keybind, keybind) }),
-           command != .selectNextTab, command != .selectPreviousTab {
-            return .commandConflict(keybind, windowTabs.title)
-        }
         return nil
     }
-    
-    /// The Window menu's items for window tabs, which macOS adds once a window has tabs.
-    /// Only Select Next Tab and Select Previous Tab may take these keys from them, as
-    /// the Silica preset does; otherwise they stay with the window tabs.
-    static let windowTabKeys: [(keybind: Keybind, title: String)] = [
-        (Keybind(key: .tab, modifiers: .control)!, "Next Window Tab"),
-        (Keybind(key: .tab, modifiers: [.control, .shift])!, "Previous Window Tab"),
-    ]
     
     /// The title of the command that `candidate` runs, other than `excludedCommand`.
     private func commandTitle(
