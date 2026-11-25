@@ -14,25 +14,29 @@ import Foundation
 nonisolated struct GitIgnoreFile: @unchecked Sendable {
     /// Folder the rules are relative to, as a project-relative path ("" for the root).
     let base: String
+    /// For a file in a folder above the project: the project's path below that
+    /// folder, ending in "/". Its rules are written for paths from there.
+    private let outerPath: String
     private let rules: [Rule]
 
     var isEmpty: Bool { rules.isEmpty }
 
-    init(base: String, contents: String) {
+    init(base: String, contents: String, outerPath: String = "") {
         self.base = base
+        self.outerPath = outerPath
         self.rules = contents
             .split(omittingEmptySubsequences: false, whereSeparator: \.isNewline)
             .compactMap { Rule(line: String($0)) }
     }
 
-    init?(base: String, url: URL) {
+    init?(base: String, url: URL, outerPath: String = "") {
         guard let data = try? Data(contentsOf: url) else { return nil }
-        self.init(base: base, contents: String(decoding: data, as: UTF8.self))
+        self.init(base: base, contents: String(decoding: data, as: UTF8.self), outerPath: outerPath)
     }
 
     /// `true` / `false` when a rule decides `path` (relative to `base`), `nil` if none matches.
     func decision(for path: String, isDirectory: Bool) -> Bool? {
-        let lowered = path.lowercased()
+        let lowered = (outerPath + path).lowercased()
         let name = lowered.split(separator: "/").last.map(String.init) ?? lowered
         var result: Bool?
         for rule in rules where rule.matches(path: lowered, name: name, isDirectory: isDirectory) {
@@ -127,7 +131,12 @@ nonisolated struct GitIgnoreFile: @unchecked Sendable {
                         let afterSlash = i > 0 && chars[i - 1] == "/"
                         let beforeSlash = i + 2 < chars.count && chars[i + 2] == "/"
                         let atEnd = i + 2 == chars.count
-                        if (atStart || afterSlash) && beforeSlash {
+                        if atStart && atEnd {
+                            // "**" or "/**" — everything.
+                            out += ".*"
+                            i += 2
+                            continue
+                        } else if (atStart || afterSlash) && beforeSlash {
                             // "**/" — zero or more leading folders.
                             out += "(?:.*/)?"
                             i += 3
@@ -175,6 +184,52 @@ nonisolated struct GitIgnoreFile: @unchecked Sendable {
 /// The ignore files that apply inside one folder, outermost first.
 nonisolated struct GitIgnoreStack: Sendable {
     private(set) var files: [GitIgnoreFile] = []
+
+    /// The rules in effect at a project's root, before its own .gitignore: the
+    /// repository's `info/exclude`, and when the project is a folder inside its
+    /// repository, the .gitignore files of the folders above it, which git applies
+    /// there too.
+    static func project(at root: URL) -> GitIgnoreStack {
+        project(at: root, in: GitRepository.locate(containing: root)) ?? GitIgnoreStack()
+    }
+
+    /// The same, for a project whose repository has already been looked up; `nil`
+    /// when git ignores the project folder or one above it. Git ignores all of the
+    /// project then, but it was opened on purpose: it's treated as outside the
+    /// repository, with only its own rules.
+    static func project(at root: URL, in repository: GitRepository?) -> GitIgnoreStack? {
+        guard let repository else { return GitIgnoreStack() }
+        func read(_ url: URL) -> String? {
+            (try? Data(contentsOf: url)).map { String(decoding: $0, as: UTF8.self) }
+        }
+        let exclude = read(URL(filePath: repository.commonDirectory).appending(path: "info/exclude"))
+        var stack = GitIgnoreStack()
+            .adding(exclude.map { GitIgnoreFile(base: "", contents: $0, outerPath: repository.prefix) })
+        guard !repository.prefix.isEmpty else { return stack }
+        // The same rules relative to the repository's root, to check the folders on
+        // the way down to the project.
+        var fromRoot = GitIgnoreStack().adding(exclude.map { GitIgnoreFile(base: "", contents: $0) })
+
+        // Named as `locate` names them: from where the folder really is.
+        let folders = repository.prefix.split(separator: "/").map(String.init)
+        var folder = URL(
+            filePath: GitRepository.canonicalPath(root.path(percentEncoded: false)).trimmingTrailingSlash,
+            directoryHint: .isDirectory
+        )
+        for _ in folders { folder = folder.deletingLastPathComponent() }
+        for (depth, name) in folders.enumerated() {
+            if let text = read(folder.appending(path: ".gitignore")) {
+                let below = folders[depth...].joined(separator: "/") + "/"
+                stack = stack.adding(GitIgnoreFile(base: "", contents: text, outerPath: below))
+                fromRoot = fromRoot.adding(GitIgnoreFile(base: folders[..<depth].joined(separator: "/"), contents: text))
+            }
+            if fromRoot.isIgnored(folders[...depth].joined(separator: "/"), isDirectory: true) {
+                return nil
+            }
+            folder = folder.appending(path: name, directoryHint: .isDirectory)
+        }
+        return stack
+    }
 
     func adding(_ file: GitIgnoreFile?) -> GitIgnoreStack {
         guard let file, !file.isEmpty else { return self }
