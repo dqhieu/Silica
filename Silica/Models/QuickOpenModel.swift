@@ -194,8 +194,7 @@ nonisolated enum ProjectFileIndex {
         // Ignore rules in effect inside each folder, keyed by project-relative path.
         // The enumerator visits a folder before its contents, so a parent's entry
         // always exists when a child needs it.
-        let rootRules = GitIgnoreStack()
-            .adding(GitIgnoreFile(base: "", url: root.appending(path: ".git/info/exclude")))
+        let rootRules = GitIgnoreStack.project(at: root)
             .adding(GitIgnoreFile(base: "", url: root.appending(path: ".gitignore")))
         var rulesByFolder: [String: GitIgnoreStack] = ["": rootRules]
 

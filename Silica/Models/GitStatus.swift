@@ -62,6 +62,18 @@ nonisolated struct GitRepository: Sendable, Equatable {
         }
     }
 
+    /// Where what every worktree shares is kept, such as `info/exclude`: the git
+    /// directory itself, or for a linked worktree, the folder its `commondir` names.
+    var commonDirectory: String {
+        let file = (gitDirectory as NSString).appendingPathComponent("commondir")
+        guard let text = try? String(contentsOfFile: file, encoding: .utf8) else { return gitDirectory }
+        let path = text.trimmingCharacters(in: .newlines)
+        guard !path.isEmpty else { return gitDirectory }
+        let full = path.hasPrefix("/") ? path : (gitDirectory as NSString).appendingPathComponent(path)
+        // Resolved as git would: symlinks first, then "..".
+        return Self.canonicalPath(full)
+    }
+
     /// The folder a `.git` file names ("gitdir: <path>"), relative to its own folder.
     private static func linkedGitDirectory(in file: String, of folder: String) -> String? {
         guard let text = try? String(contentsOfFile: file, encoding: .utf8),

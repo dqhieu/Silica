@@ -32,14 +32,17 @@ final class FileNode: Identifiable {
     /// dotfiles (which Finder hides).
     var isDimmed: Bool { isIgnored || (dimsDotfiles && name.hasPrefix(".")) }
 
-    /// The project root, with the repository's `.git/info/exclude` rules.
+    /// The project root, with the repository's rules from outside the project:
+    /// `info/exclude`, and the .gitignore files of the folders above it.
     convenience init(root url: URL) {
-        let rules = GitIgnoreStack()
-            .adding(GitIgnoreFile(base: "", url: url.appending(path: ".git/info/exclude")))
-        let isRepository = FileManager.default.fileExists(atPath: url.appending(path: ".git").path(percentEncoded: false))
+        let repository = GitRepository.locate(containing: url)
+        let rules = GitIgnoreStack.project(at: url, in: repository)
+        // Also for a folder inside a repository, or a worktree, whose `.git` is a file;
+        // not for one in a folder the repository ignores.
+        let isRepository = repository != nil && rules != nil
         self.init(
             url: url, isDirectory: true, relativePath: "", isIgnored: false,
-            dimsDotfiles: !isRepository, inheritedRules: rules
+            dimsDotfiles: !isRepository, inheritedRules: rules ?? GitIgnoreStack()
         )
     }
 
@@ -64,6 +67,8 @@ final class FileNode: Identifiable {
     /// Re-reads every loaded folder, keeping existing nodes (and their expansion state).
     /// Ignore rules are re-read too, so editing a .gitignore updates the dimming.
     func reload() {
+        // The project root's rules come from outside it, which may have changed too.
+        if isDirectory, relativePath.isEmpty { inheritedRules = GitIgnoreStack.project(at: url) }
         guard isDirectory, let old = children else { return }
         childRules = nil
         let existing = Dictionary(old.map { ($0.url, $0) }, uniquingKeysWith: { first, _ in first })
