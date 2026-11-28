@@ -3,6 +3,26 @@
     <channel>
         <title>Silica</title>
         <item>
+            <title>0.9.1</title>
+            <pubDate>Sat, 28 Nov 2026 10:38:07 +0800</pubDate>
+            <link>https://github.com/dqhieu/Silica</link>
+            <sparkle:fullReleaseNotesLink>https://github.com/dqhieu/Silica/releases</sparkle:fullReleaseNotesLink>
+            <sparkle:version>12</sparkle:version>
+            <sparkle:shortVersionString>0.9.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <description sparkle:format="markdown"><![CDATA[### What's new
+
+- **No more crash from the macOS window tab bar.** If macOS was set to prefer tabs when opening documents, or you chose **View › Show Tab Bar**, Silica's windows showed the system tab bar: its + button crashed Silica, and the bar covered the top of the sidebar, hiding the Find in Project field. Silica's windows no longer use macOS window tabs, so the bar and its menu items are gone; your files keep their own tabs as before.
+- **⌃Tab and ⌃⇧Tab are no longer reserved.** **Settings › Keybinds** kept them for switching window tabs, which Silica no longer has, so you can now give them to any command.
+
+If you already have Silica, it will offer this update on its own, or choose **Silica › Check for Updates…**.
+
+Found a bug or have an idea? Please [open an issue](https://github.com/dqhieu/Silica/issues).
+
+]]></description>
+            <enclosure url="https://github.com/dqhieu/Silica/releases/download/v0.9.1/Silica-0.9.1.dmg" length="10259601" type="application/octet-stream" sparkle:edSignature="USh7XkkE/hrPC2v+QkpSjiS7deYSKW4+KwyPpXzt+IE6WCWZRx1DDIHuug7CKS9XYZMpizYRc3k27T2mvGGjAg=="/>
+        </item>
+        <item>
             <title>0.9.0</title>
             <pubDate>Mon, 23 Nov 2026 20:08:29 +0800</pubDate>
             <link>https://github.com/dqhieu/Silica</link>
